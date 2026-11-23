@@ -23,6 +23,7 @@ import de.jare.rewisp.model.ErrorType;
 import de.jare.rewisp.model.ProjectEntry;
 import de.jare.rewisp.rewrite.RewriteEngine;
 import de.jare.rewisp.rewrite.RewrittenFile;
+import de.jare.rewisp.util.JavaNames;
 import de.jare.rewisp.util.PathUtils;
 import de.jare.rewisp.util.ProjectLayout;
 
@@ -86,8 +87,26 @@ final class MoveClassOperations {
                     "Cannot determine source directory for project: " + request.project(),
                     ctx("className", className, "newPackage", newPackage));
         }
+        // ED:E-51: newPackage is user input that becomes a path — validate as a Java package
+        // name (an absolute path like C:\evil or /tmp/evil is not a valid package name) and
+        // additionally enforce containment of the resolved target file.
+        if (newPackage == null) {
+            throw new RewispException(ErrorType.DOMAIN_ERROR,
+                    "newPackage is required (use the empty string for the default package).",
+                    ctx("className", className));
+        }
+        if (!newPackage.isEmpty() && !JavaNames.isValidPackageName(newPackage)) {
+            throw new RewispException(ErrorType.SECURITY_ERROR,
+                    "Invalid package name for move_class: '" + newPackage + "'",
+                    ctx("className", className, "newPackage", newPackage));
+        }
         Path newPackageDir = srcDir.resolve(newPackage.replace(".", "/"));
         Path newFile = newPackageDir.resolve(simpleName + ProjectLayout.JAVA_EXTENSION);
+        if (!EditSupport.isInsideProject(entry, newFile)) {
+            throw new RewispException(ErrorType.SECURITY_ERROR,
+                    "Target is outside the project and cannot be written: " + newFile,
+                    ctx("className", className, "newPackage", newPackage));
+        }
 
         // Nichts ueberschreiben: Zieldatei auf Platte, gepufferte Zieldatei oder Zieltyp im Modell
         String newQualifiedName = newPackage.isEmpty() ? simpleName : newPackage + "." + simpleName;

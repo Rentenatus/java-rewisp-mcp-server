@@ -43,7 +43,7 @@ final class EditLineOperations {
         EditPipeline.requireEditable(entry);
 
         Path file = resolveFile(manager, entry, filePath);
-        if (file != null && !isInsideProject(entry, file)) {
+        if (file != null && !EditSupport.isInsideProject(entry, file)) {
             throw new RewispException(ErrorType.SECURITY_ERROR,
                     "File is outside the project and cannot be edited: " + filePath,
                     ctx("file", filePath));
@@ -120,15 +120,6 @@ final class EditLineOperations {
 
         return new EditLineResult(updated.name(), false, file, lineNumber, oldLine, normalizedNewContent,
                 updated.modulesDetected(), updated.modulesLoaded());
-    }
-
-    /** true when the file (after resolving .. and symlinks) lies under the project directory. */
-    private static boolean isInsideProject(ProjectEntry entry, Path file) {
-        Path real = PathUtils.canonical(file);
-        for (Path root : new Path[] {entry.originalProjectDir(), entry.projectDir()}) {
-            if (root != null && real.startsWith(PathUtils.canonical(root))) return true;
-        }
-        return false;
     }
 
     /**

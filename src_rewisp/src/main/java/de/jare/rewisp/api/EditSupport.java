@@ -18,6 +18,7 @@ import de.jare.rewisp.edit.EditManager;
 import de.jare.rewisp.model.ErrorType;
 import de.jare.rewisp.model.ProjectEntry;
 import de.jare.rewisp.rewrite.RewriteEngine;
+import de.jare.rewisp.util.PathUtils;
 
 import spoon.reflect.declaration.CtType;
 
@@ -42,6 +43,23 @@ final class EditSupport {
             m.put(String.valueOf(pairs[i]), pairs[i + 1]);
         }
         return m;
+    }
+
+    /**
+     * True when the file (after resolving {@code ..} and symlinks) lies under the project directory.
+     * Containment check for all write paths built from user input (ED:E-51).
+     */
+    static boolean isInsideProject(ProjectEntry entry, Path file) {
+        if (file == null) {
+            return false;
+        }
+        Path real = PathUtils.canonical(file);
+        for (Path root : new Path[] {entry.originalProjectDir(), entry.projectDir()}) {
+            if (root != null && real.startsWith(PathUtils.canonical(root))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Looks up the type; an unknown type is reported as {@code TYPE_NOT_FOUND}. */
