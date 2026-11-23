@@ -5,6 +5,7 @@
  */
 package de.jare.rewisp.build;
 
+import java.util.Map;
 import java.util.function.LongSupplier;
 
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.jare.rewisp.model.ProjectEntry;
+import de.jare.rewisp.snapshot.BuildFileHasher;
 import de.jare.rewisp.snapshot.ProjectState;
 
 /**
@@ -37,7 +39,7 @@ public final class BuildContextService {
     private final BuildResolver mavenBuildResolver;
     private final BuildResolver gradleBuildResolver;
     private final LongSupplier clock;
-    private final ConcurrentHashMap<String, BuildContext> contexts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CachedContext> contexts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Failure> failures = new ConcurrentHashMap<>();
 
@@ -46,6 +48,10 @@ public final class BuildContextService {
             long factor = 1L << Math.min(consecutive - 1, 20);
             return Math.min(FAILURE_BACKOFF_MILLIS * factor, MAX_FAILURE_BACKOFF_MILLIS);
         }
+    }
+
+    /** Cached context plus the build-file hashes it was resolved from (AP-5.25: compared on every cache hit). */
+    private record CachedContext(BuildContext context, Map<String, String> buildFileHashes) {
     }
 
     public BuildContextService() {
@@ -60,7 +66,11 @@ public final class BuildContextService {
 
     /** Cached context of the project (exact name) or {@code null}. */
     public BuildContext cached(String projectName) {
-        return projectName != null ? contexts.get(projectName) : null;
+        if (projectName == null) {
+            return null;
+        }
+        CachedContext cached = contexts.get(projectName);
+        return cached != null ? cached.context() : null;
     }
 
     public void invalidate(String projectName) {
@@ -101,13 +111,19 @@ public final class BuildContextService {
             // Aenderung der Build-Dateien: neu zaehlen; sonst steigt die Wartezeit mit jedem weiteren Fehlschlag
             previousFailures = unchanged ? failure.consecutive() : 0;
         }
-        if (state != null && !state.dirtyState().isBuildModelDirty()) {
-            BuildContext existing = contexts.get(name);
-            if (existing != null) return existing;
-        }
-
         Path projectRoot = entry.originalProjectDir() != null
                 ? entry.originalProjectDir() : entry.projectDir();
+
+        if (state != null && !state.dirtyState().isBuildModelDirty()) {
+            CachedContext existing = contexts.get(name);
+            // AP-5.25 / BT:I-03: Fingerprint ALLER Build-Dateien (inkl. Module) vergleichen, nicht nur das Dirty-Flag
+            if (existing != null && BuildFileHasher.hash(projectRoot).equals(existing.buildFileHashes())) {
+                return existing.context();
+            }
+            if (existing != null) {
+                LOG.info("Build files of '{}' changed without dirty marking; re-resolving build context", name);
+            }
+        }
 
         BuildResolver resolver;
         if (mavenBuildResolver.supports(projectRoot)) {
@@ -127,7 +143,7 @@ public final class BuildContextService {
             failures.put(name, new Failure(e, clock.getAsLong(), dirtyVersion, previousFailures + 1));
             throw e;
         }
-        contexts.put(name, ctx);
+        contexts.put(name, new CachedContext(ctx, BuildFileHasher.hash(projectRoot)));
         if (state != null && !state.dirtyState().clearBuildDirtyIfUnchanged(observedVersion)) {
             LOG.info("Build configuration of '{}' changed during resolution; staying dirty", name);
         }

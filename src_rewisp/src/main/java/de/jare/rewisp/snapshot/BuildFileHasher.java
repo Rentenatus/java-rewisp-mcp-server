@@ -12,11 +12,15 @@ import java.util.Set;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import de.jare.rewisp.build.PomUtils;
@@ -35,7 +39,15 @@ public final class BuildFileHasher {
 
     private BuildFileHasher() {}
 
-    /** Hash per build file (key: file name resp. {@code parent-pom}); missing files are absent from the map. */
+    /** Directories that never contain relevant build files (build output, VCS, dependencies). */
+    private static final Set<String> IGNORED_DIRS = Set.of("target", "build", "out", ".git", ".gradle", "node_modules");
+
+    /**
+     * Hash per build file (key: path relative to the project root with {@code /}, resp.
+     * {@code parent-pom}); missing files are absent from the map. Covers the root build files
+     * AND all module build files ({@code module-a/pom.xml}, {@code module-b/build.gradle}, ...),
+     * so multi-module changes are detected too (AP-5.25 / BT:I-03).
+     */
     public static Map<String, String> hash(Path projectRoot) {
         Map<String, String> out = new TreeMap<>();
         if (projectRoot == null) return out;
@@ -44,6 +56,30 @@ public final class BuildFileHasher {
         names.addAll(ProjectLayout.GRADLE_CONFIG_FILES);
         for (String name : names) {
             put(out, hasher, name, projectRoot.resolve(name));
+        }
+        // Alle Modul-Build-Dateien im Baum (target/build/.git/... werden uebersprungen)
+        try {
+            Files.walkFileTree(projectRoot, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    if (!dir.equals(projectRoot) && IGNORED_DIRS.contains(dir.getFileName().toString())) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    String fileName = file.getFileName().toString();
+                    if (ProjectLayout.isBuildConfigFile(fileName)) {
+                        String key = projectRoot.relativize(file).toString().replace('\\', '/');
+                        put(out, hasher, key, file);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            // unlesbarer Baum: Root-Dateien bleiben gehasht
         }
         Path parent = PomUtils.resolveParentPomPath(projectRoot);
         if (parent != null) {
