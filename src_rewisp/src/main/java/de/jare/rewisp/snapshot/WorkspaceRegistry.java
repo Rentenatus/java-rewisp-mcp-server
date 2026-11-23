@@ -26,6 +26,8 @@ public final class WorkspaceRegistry {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(WorkspaceRegistry.class);
 
     private final Set<Path> allowedRoots;
+    /** Roots that are always allowed, e.g. the temp base for clones/downloads (AP-5.2). */
+    private final Set<Path> implicitRoots = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<String, Path> registered = new ConcurrentHashMap<>();
 
     /**
@@ -47,8 +49,29 @@ public final class WorkspaceRegistry {
     }
 
     /**
+     * Marks a root as always allowed (recursively), regardless of the allowlist. Used for the
+     * temp base where git clones and downloads are extracted: without this, every remote source
+     * would fail the allowlist check (RT:P-07).
+     */
+    public void allowRecursively(Path root) {
+        if (root == null) {
+            return;
+        }
+        try {
+            Path normalized = root.toAbsolutePath().normalize();
+            implicitRoots.add(normalized);
+            // Auch den realen Pfad aufnehmen (Windows 8.3-Kurzname vs. Langname)
+            if (Files.exists(normalized)) {
+                implicitRoots.add(normalized.toRealPath());
+            }
+        } catch (Exception e) {
+            LOG.warn("Ignoring invalid implicit root '{}': {}", root, e.getMessage());
+        }
+    }
+
+    /**
      * Checks whether a path lies within the allowed roots.
-     * 
+     *
      * @param projectRoot the path to check
      * @return true when the path is allowed
      */
@@ -71,7 +94,14 @@ public final class WorkspaceRegistry {
                 // Falls toRealPath fehlschlägt, bleibe bei normalized
                 LOG.debug("toRealPath failed for {}: {}", normalized, e.getMessage());
             }
-            
+
+            // Implizite Roots (z. B. Temp-Basis für Klone/Downloads) sind immer erlaubt
+            for (Path implicit : implicitRoots) {
+                if (normalized.startsWith(implicit) || realPath.startsWith(implicit)) {
+                    return true;
+                }
+            }
+
             for (Path allowed : allowedRoots) {
                 // Prüfe sowohl normalisierten als auch realen Pfad
                 if (normalized.startsWith(allowed) || realPath.startsWith(allowed)) {

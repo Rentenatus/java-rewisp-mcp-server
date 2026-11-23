@@ -143,6 +143,23 @@ public class ProjectManager {
             expiryDate = Instant.now().plus(Long.getLong(DEFAULT_EXPIRY_PROPERTY, DEFAULT_EXPIRY_MINUTES), ChronoUnit.MINUTES);
         }
 
+        // AP-5.2 (RT:P-07): lokale Quellen VOR resolveSource pruefen — resolveSource entpackt
+        // lokale Archive als Seiteneffekt, das darf erst nach der Allowlist-Pruefung passieren
+        if (workspaceRegistry != null && source != null && !source.isBlank()
+                && !source.startsWith("http://") && !source.startsWith("https://")) {
+            try {
+                Path local = source.startsWith("file:")
+                        ? Path.of(java.net.URI.create(source)).normalize().toAbsolutePath()
+                        : Path.of(source).normalize().toAbsolutePath();
+                if (Files.exists(local) && !workspaceRegistry.isAllowed(local)) {
+                    throw new ProjectLoadException(ErrorType.SECURITY_ERROR,
+                            "Project path is outside the allowed workspace roots: " + local);
+                }
+            } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException e) {
+                // ungueltige URI / Pfad: resolveSource meldet den Fehler fachlich
+            }
+        }
+
         Path projectDir = projectLoader.resolveSource(source);
         // Vor jeder weiteren Verarbeitung pruefen: Delombok startet Maven/Gradle im Projektverzeichnis
         // und wuerde dort Code eines nicht erlaubten Verzeichnisses ausfuehren
@@ -581,6 +598,10 @@ public class ProjectManager {
 
     public void setWorkspaceRegistry(WorkspaceRegistry workspaceRegistry) {
         this.workspaceRegistry = workspaceRegistry;
+        if (workspaceRegistry != null) {
+            // Klone/Downloads landen in der Temp-Basis und duerfen nicht an der Allowlist scheitern (RT:P-07)
+            workspaceRegistry.allowRecursively(ProjectLoader.tempBase());
+        }
     }
 
     public void setChangeTracker(ChangeTracker changeTracker) {

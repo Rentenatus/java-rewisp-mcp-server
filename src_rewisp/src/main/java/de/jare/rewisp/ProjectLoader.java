@@ -61,6 +61,14 @@ public class ProjectLoader {
         try { Files.createDirectories(TEMP_BASE); } catch (IOException e) { throw new RuntimeException(e); }
     }
 
+    /**
+     * Basisverzeichnis, in dem Klone und Downloads entpackt werden. Ist implizit erlaubt
+     * (AP-5.2), damit git/archive-Quellen bei gesetzter Allowlist nicht daran scheitern.
+     */
+    public static Path tempBase() {
+        return TEMP_BASE;
+    }
+
     /** Limits during extraction (zip bomb protection): total size and number of entries. */
     private static final long DEFAULT_MAX_EXTRACTED_BYTES = 2L * 1024 * 1024 * 1024;
     private static final int DEFAULT_MAX_ENTRIES = 200_000;
