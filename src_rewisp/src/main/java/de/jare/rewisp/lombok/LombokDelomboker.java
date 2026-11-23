@@ -165,9 +165,39 @@ public class LombokDelomboker {
                             + ". Check lombok JAR version matches project.");
         }
 
+        // AP-5.10 / RT:P-15: Build-Dateien mitkopieren, damit im Delombok-Verzeichnis ein
+        // Build-Kontext auflösbar ist (delombokte Maven-Projekte behalten ihre Dependency-Typen)
+        copyBuildFiles(projectDir, buildType, dest);
+
         LOG.info("Delomboked project at {} into {} (classpath entries: {})",
                 projectDir, dest, classpath.isEmpty() ? 0 : classpath.split(File.pathSeparator).length);
         return dest;
+    }
+
+    /**
+     * Copies the build files of the original project into the delombok directory: {@code pom.xml}
+     * for Maven, the Gradle configuration files for Gradle, nothing for RAW. Best effort — a missing
+     * build file is not an error (the launcher then falls back to noclasspath).
+     */
+    static void copyBuildFiles(Path projectDir, BuildDetector.BuildType buildType, Path dest) {
+        List<String> names;
+        if (buildType == BuildDetector.BuildType.MAVEN) {
+            names = List.of(ProjectLayout.POM_FILE);
+        } else if (buildType == BuildDetector.BuildType.GRADLE) {
+            names = ProjectLayout.GRADLE_CONFIG_FILES;
+        } else {
+            return;
+        }
+        for (String name : names) {
+            Path source = projectDir.resolve(name);
+            if (Files.isRegularFile(source)) {
+                try {
+                    Files.copy(source, dest.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    LOG.debug("Could not copy build file {} into {}: {}", name, dest, e.getMessage());
+                }
+            }
+        }
     }
 
     /**
