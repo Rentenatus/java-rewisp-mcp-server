@@ -2,7 +2,9 @@
 
 > Only open, unresolved issues. Fixed bugs are not tracked here;
 > they are recorded in the commit messages and the corresponding regression tests.
-> Last updated: 2026-10-25 after static code review (not
+> Last updated: 2026-11-23 (N18/N20 closed with the AP-0.5/5.4 tests; many N-items are
+> already implemented via the AP packages in REVIEW-PLAN — full reconciliation pending).
+> Originally: 2026-10-25 after static code review (not
 > executed/reproduced — line references checked, behavior not).
 > Full list (≈ 125 bugs): [`review/`](review/); processing:
 > [REVIEW-PLAN.md](REVIEW-PLAN.md). Bugs #11–#16 come from the live test
@@ -47,9 +49,9 @@ BT=build package and tests).
 | No. | Finding | Reference | Plan |
 |-----|---------|-----------|------|
 | N17 | `WorkspaceWatcher`: event paths checked against the project root instead of the watched directory; `OVERFLOW` → NPE silently ends the loop; a deleted directory ends the whole watcher; busy-spin in the “debounce”; no tests | SN:S-02–S-08, S-39 | AP-2.2–2.7 |
-| N18 | `System.out.println` before transport start writes into the JSON-RPC channel | RT:P-01 | AP-0.5 |
+| N18 ✅ | **FIXED** — log line goes to `System.err`; smoke test `ServerStdoutContractTest.firstStdoutLine_isJsonRpcInitializeResponse` (green 2026-11-23) starts the real server and asserts the first stdout line is valid JSON-RPC | RT:P-01 | AP-0.5 |
 | N19 | `-D` properties are overwritten by YAML (sandbox `workspace.allowedRoots` via command line ineffective; default empty = everything allowed) | RT:P-03, C-04 | AP-5.3, 5.2 |
-| N20 | JVM does not exit after stdin EOF (one orphaned process per client session) | RT:P-02 | AP-5.4 |
+| N20 ✅ | **FIXED 2026-10-26** — `EofSignalingInputStream`; test `ServerStdoutContractTest.serverExits_whenStdinIsClosed` | RT:P-02 | AP-5.4 |
 | N21 | Delombok: output is read until EOF before `waitFor(timeout)` runs — the timeout never fires; a hung `mvn` blocks `load_java_project` forever | RT:P-18 | AP-5.7 |
 | N22 | ZIP/archive projects with a Maven layout are loaded as RAW (without pom) (`findSingleRoot` only checks depth 3) | RT:P-04 | AP-5.1 |
 | N23 | `LombokDetector`: `@Value`/`@Log`/`@With` without an import check → Spring projects count as Lombok projects (download, delombok); for delombok Maven projects the dependency classpath is missing (no pom in the delombok directory) | RT:P-24, P-15 | AP-5.11, 5.10 |
