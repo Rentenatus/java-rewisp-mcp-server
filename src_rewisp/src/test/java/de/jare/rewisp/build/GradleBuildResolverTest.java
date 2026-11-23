@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,7 +90,10 @@ class GradleBuildResolverTest {
     @Test
     void resolve_ReadsNameLanguageLevelAndClasspathFromGradleOutput() throws Exception {
         Files.writeString(testProjectDir.resolve("build.gradle"), "plugins { id 'java' }\n");
-        FakeGradle.install(testProjectDir, PROPERTIES, DEPENDENCIES, 0, false);
+        // AP-5.22 / BT:B-02: classpath comes as real JAR paths from the init-script task, not as coordinates
+        Path jar = Files.createFile(testProjectDir.resolve("lib.jar"));
+        String classpathOut = "REWISP_CP_BEGIN\n" + jar.toAbsolutePath() + "\nREWISP_CP_END\n";
+        FakeGradle.install(testProjectDir, PROPERTIES, DEPENDENCIES, classpathOut, 0, false);
 
         BuildContext ctx = resolver.resolve(testProjectDir, ResolveOptions.defaults());
 
@@ -99,8 +103,7 @@ class GradleBuildResolverTest {
         ModuleContext mod = ctx.modules().get(0);
         assertEquals("demo", mod.moduleId());
         assertEquals("21", mod.languageLevel());
-        assertTrue(mod.compileClasspath().contains("org.apache.commons:commons-lang3:3.14.0"), mod.compileClasspath().toString());
-        assertTrue(mod.compileClasspath().contains("com.google.guava:guava:33.0.0-jre"), mod.compileClasspath().toString());
+        assertEquals(List.of(jar.toAbsolutePath().toString()), mod.compileClasspath());
     }
 
     @Test
@@ -123,7 +126,7 @@ class GradleBuildResolverTest {
 
         resolver.resolve(testProjectDir, new ResolveOptions(false, 60, 1_000_000, false));
         String offline = FakeGradle.calls(testProjectDir);
-        assertTrue(offline.contains("properties") && offline.contains("dependencies"), offline);
+        assertTrue(offline.contains("properties") && offline.contains("rewispClasspath"), offline);
         assertTrue(offline.contains("--offline"), offline);
 
         Files.delete(testProjectDir.resolve("args.log"));

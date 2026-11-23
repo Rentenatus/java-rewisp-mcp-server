@@ -50,14 +50,17 @@ class GradleBuildResolverIntegrationTest {
 
     @Test
     void resolveReturnsGradleContextFromTheFixture() throws Exception {
-        FakeGradle.install(fixture, PROPERTIES, DEPENDENCIES, 0, false);
+        // AP-5.22 / BT:B-02: classpath as JAR paths from the init-script task, not as coordinates
+        Path jar = Files.createFile(fixture.resolve("slf4j-api-2.0.9.jar"));
+        String classpathOut = "REWISP_CP_BEGIN\n" + jar.toAbsolutePath() + "\nREWISP_CP_END\n";
+        FakeGradle.install(fixture, PROPERTIES, DEPENDENCIES, classpathOut, 0, false);
 
         BuildContext ctx = resolver.resolve(fixture, ResolveOptions.defaults());
 
         assertEquals("GRADLE", ctx.buildSystem());
         assertEquals(1, ctx.modules().size());
         assertEquals("multi", ctx.modules().get(0).moduleId());
-        assertEquals(java.util.List.of("org.slf4j:slf4j-api:2.0.9"), ctx.modules().get(0).compileClasspath());
+        assertEquals(java.util.List.of(jar.toAbsolutePath().toString()), ctx.modules().get(0).compileClasspath());
         // der Fake-Wrapper liegt im Projekt: kein Hinweis auf einen fehlenden Wrapper
         assertTrue(ctx.diagnostics().stream().noneMatch(d -> d.code() == BuildDiagnosticCode.GRADLE_WRAPPER_MISSING),
                 ctx.diagnostics().toString());

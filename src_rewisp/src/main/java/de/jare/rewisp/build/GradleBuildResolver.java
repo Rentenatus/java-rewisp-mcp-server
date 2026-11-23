@@ -68,26 +68,29 @@ public final class GradleBuildResolver implements BuildResolver {
                 withNetworkPolicy(List.of("properties", "--quiet", "--no-daemon"), options),
                 options.timeoutSeconds(), options.maxOutputBytes());
 
-        // 3. Get dependencies output for compile classpath
-        String dependenciesOutput = runGradle(projectRoot, gradleExecutable,
-                withNetworkPolicy(List.of("dependencies", "--configuration", "compileClasspath", "--quiet",
-                        "--no-daemon"), options),
+        // 3. Classpath as real JAR paths via init-script task (BT:B-02: the dependency tree only
+        // yields Maven coordinates, which are not valid classpath entries)
+        Path initScript = writeClasspathInitScript();
+        String classpathOutput = runGradle(projectRoot, gradleExecutable,
+                withNetworkPolicy(List.of("-I", initScript.toAbsolutePath().toString(), CLASSPATH_TASK,
+                        "--quiet", "--no-daemon"), options),
                 options.timeoutSeconds(), options.maxOutputBytes());
+        List<String> classpathJars = parseClasspathJars(classpathOutput);
 
         // 4. Detect source roots
         Set<Path> sourceRoots = detectGradleSourceRoots(projectRoot);
 
         // 5. Parse modules
         List<ModuleContext> modules = parseGradleModules(
-                projectRoot, propertiesOutput, dependenciesOutput);
+                projectRoot, propertiesOutput, classpathJars);
 
         // 6. Compute fingerprint
         BuildFingerprint fingerprint = computeGradleFingerprint(
-                projectRoot, dependenciesOutput, sourceRoots);
+                projectRoot, classpathOutput, sourceRoots);
 
         // 7. Collect diagnostics
         List<BuildDiagnostic> diagnostics = collectDiagnostics(
-                projectRoot, gradleExecutable, propertiesOutput, dependenciesOutput);
+                projectRoot, gradleExecutable, propertiesOutput, classpathOutput);
 
         return new BuildContext("GRADLE", modules, fingerprint, diagnostics);
     }
@@ -168,14 +171,20 @@ public final class GradleBuildResolver implements BuildResolver {
             throw new BuildResolutionException(BuildResolutionErrorCode.INTERRUPTED, "Gradle process interrupted");
         }
     }
-    private static final Set<String> ALLOWED_TASKS = Set.of("properties", "dependencies");
+    /** Init-script task that prints the compile classpath as absolute JAR paths (BT:B-02). */
+    static final String CLASSPATH_TASK = "rewispClasspath";
+    /** Marker lines around the JAR path output of {@link #CLASSPATH_TASK}. */
+    static final String CP_MARKER = "REWISP_CP";
+
+    private static final Set<String> ALLOWED_TASKS = Set.of("properties", "dependencies", CLASSPATH_TASK);
     private static final Set<String> ALLOWED_CONFIGURATIONS =
             Set.of("compileClasspath", "runtimeClasspath", "testCompileClasspath");
     private static final Set<String> ALLOWED_FLAGS = Set.of("--quiet", "-q", "--no-daemon", "--offline");
 
     /**
-     * Checks the argument list against the allowlist: tasks and the value of {@code --configuration}
-     * are checked separately, flags only from a fixed set are allowed.
+     * Checks the argument list against the allowlist: tasks and the values of {@code --configuration}
+     * and {@code -I}/{@code --init-script} are checked separately, flags only from a fixed set are
+     * allowed. Init scripts are only accepted from the temp directory (the resolver writes them itself).
      */
     static void validateArgs(List<String> args) throws BuildResolutionException {
         for (int i = 0; i < args.size(); i++) {
@@ -185,6 +194,12 @@ public final class GradleBuildResolver implements BuildResolver {
                 if (value == null || !ALLOWED_CONFIGURATIONS.contains(value)) {
                     throw new BuildResolutionException(BuildResolutionErrorCode.GOAL_NOT_ALLOWED,
                             "Gradle configuration not in allowlist: " + value);
+                }
+            } else if ("-I".equals(arg) || "--init-script".equals(arg)) {
+                String value = i + 1 < args.size() ? args.get(++i) : null;
+                if (value == null || !isTempPath(value)) {
+                    throw new BuildResolutionException(BuildResolutionErrorCode.GOAL_NOT_ALLOWED,
+                            "Gradle init script must be a file in the temp directory: " + value);
                 }
             } else if (arg.startsWith("-")) {
                 if (!ALLOWED_FLAGS.contains(arg)) {
@@ -196,6 +211,69 @@ public final class GradleBuildResolver implements BuildResolver {
                         "Gradle task not in allowlist: " + arg);
             }
         }
+    }
+
+    /** true when the path lies under {@code java.io.tmpdir} (where the resolver writes its init script). */
+    private static boolean isTempPath(String value) {
+        try {
+            Path tmp = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
+            return Path.of(value).toAbsolutePath().normalize().startsWith(tmp);
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Writes the init script for {@link #CLASSPATH_TASK} into the temp directory. The task prints the
+     * absolute paths of {@code sourceSets.main.compileClasspath.files} of every Java project between
+     * {@code REWISP_CP_BEGIN}/{@code REWISP_CP_END} markers.
+     */
+    static Path writeClasspathInitScript() throws BuildResolutionException {
+        String script = """
+                allprojects { p ->
+                    p.tasks.register('%s') {
+                        doLast {
+                            if (p.plugins.hasPlugin('java') || p.plugins.hasPlugin('java-library')) {
+                                println '%s_BEGIN'
+                                p.sourceSets.main.compileClasspath.files.each { println it.absolutePath }
+                                println '%s_END'
+                            }
+                        }
+                    }
+                }
+                """.formatted(CLASSPATH_TASK, CP_MARKER, CP_MARKER);
+        try {
+            Path file = Files.createTempFile("rewisp-gradle-init", ".gradle");
+            Files.writeString(file, script);
+            file.toFile().deleteOnExit();
+            return file;
+        } catch (IOException e) {
+            throw new BuildResolutionException(BuildResolutionErrorCode.IO_ERROR,
+                    "cannot write init script: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Reads the JAR paths between the {@link #CP_MARKER} markers (one absolute path per line);
+     * entries that are not existing regular files are dropped. Without markers the result is empty.
+     */
+    static List<String> parseClasspathJars(String output) {
+        List<String> entries = new ArrayList<>();
+        if (output == null) {
+            return entries;
+        }
+        boolean inMarker = false;
+        for (String line : output.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.equals(CP_MARKER + "_BEGIN")) {
+                inMarker = true;
+            } else if (trimmed.equals(CP_MARKER + "_END")) {
+                inMarker = false;
+            } else if (inMarker && !trimmed.isEmpty() && Files.isRegularFile(Path.of(trimmed))) {
+                entries.add(trimmed);
+            }
+        }
+        return entries;
     }
 
     /**
@@ -239,15 +317,14 @@ public final class GradleBuildResolver implements BuildResolver {
      * Parses Gradle modules from properties output.
      */
     private List<ModuleContext> parseGradleModules(
-            Path projectRoot, String propertiesOutput, String dependenciesOutput) {
+            Path projectRoot, String propertiesOutput, List<String> classpathEntries) {
 
         List<ModuleContext> modules = new ArrayList<>();
-        
+
         // For MVP: Create one module for the root project
         // In future: parse subProjects from properties output
         String moduleId = extractProjectName(propertiesOutput, projectRoot);
         Set<Path> sourceRoots = detectGradleSourceRoots(projectRoot);
-        List<String> classpathEntries = parseGradleClasspath(dependenciesOutput);
         String languageLevel = extractLanguageLevel(propertiesOutput);
 
         modules.add(new ModuleContext(
@@ -319,63 +396,11 @@ public final class GradleBuildResolver implements BuildResolver {
         return null;
     }
     /**
-     * Parses classpath entries from Gradle dependencies output.
-     * Gradle dependencies output is a tree structure, we extract artifact coordinates.
-     */
-    private List<String> parseGradleClasspath(String dependenciesOutput) {
-        List<String> entries = new ArrayList<>();
-        if (dependenciesOutput == null || dependenciesOutput.isBlank()) {
-            return entries;
-        }
-
-        // Pattern to match dependency lines like:
-        // +--- org.springframework:spring-core:6.1.0
-        // |    +--- org.springframework:spring-jcl:6.1.0
-        // Also handles: implementation 'org.apache.commons:commons-lang3:3.14.0'
-        Pattern pattern = Pattern.compile(
-                "(?:[|\\s]*[+\\-\\|]?\\s*)" +
-                "(?:implementation|compileOnly|api|runtimeOnly|annotationProcessor)\\s+'?" +
-                "([^'\\s:]+):([^'\\s:]+):([^'\\s:]+)'?",
-                Pattern.CASE_INSENSITIVE);
-
-        Matcher matcher = pattern.matcher(dependenciesOutput);
-        while (matcher.find()) {
-            String groupId = matcher.group(1);
-            String artifactId = matcher.group(2);
-            String version = matcher.group(3);
-            
-            // Create Maven-style coordinate
-            String coordinate = groupId + ":" + artifactId + ":" + version;
-            entries.add(coordinate);
-        }
-
-        // Also try to extract from tree format: +--- group:artifact:version
-        Pattern treePattern = Pattern.compile(
-                "[|\\s]*[+\\-\\|]?\\s*" +
-                "(?:\\(n\\)\\s+)?" +  // (n) for note
-                "([a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)",
-                Pattern.CASE_INSENSITIVE);
-
-        Matcher treeMatcher = treePattern.matcher(dependenciesOutput);
-        while (treeMatcher.find()) {
-            String groupId = treeMatcher.group(1);
-            String artifactId = treeMatcher.group(2);
-            String version = treeMatcher.group(3);
-            
-            String coordinate = groupId + ":" + artifactId + ":" + version;
-            if (!entries.contains(coordinate)) {
-                entries.add(coordinate);
-            }
-        }
-
-        return entries;
-    }
-
-    /**
      * Computes the Gradle fingerprint for caching and change detection.
+     * The classpath hash covers the JAR-path output of {@link #CLASSPATH_TASK} (BT:B-02).
      */
     private BuildFingerprint computeGradleFingerprint(
-            Path projectRoot, String dependenciesOutput, Set<Path> sourceRoots) {
+            Path projectRoot, String classpathOutput, Set<Path> sourceRoots) {
 
         // Hash build files
         StringBuilder buildFilesContent = new StringBuilder();
@@ -405,7 +430,7 @@ public final class GradleBuildResolver implements BuildResolver {
         }
 
         String buildFilesHash = hasher.sha256(buildFilesContent.toString());
-        String classpathHash = hasher.sha256(dependenciesOutput != null ? dependenciesOutput : "");
+        String classpathHash = hasher.sha256(classpathOutput != null ? classpathOutput : "");
         String sourceRootsHash = hasher.sha256(
                 sourceRoots.stream().sorted().map(Path::toString)
                         .reduce("", (a, b) -> a + ";" + b));
