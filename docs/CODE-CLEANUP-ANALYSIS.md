@@ -1,412 +1,419 @@
-# Code Cleanup Analyse - Deprecated, Outdated & Unbenutzte Elemente
+# Code Cleanup Analysis - Deprecated, Outdated & Unused Elements
 
-*Generiert am: 2026-10-01*  
-*Status: Analyse für Gruppe 9 Abschluss*  
-*Verantwortlich: 3-Schichten-Architektur Migration*
+> **HISTORICAL — status as of 2026-10-01, no longer current.** The classes
+> `BaseJavaTool`, `RewriteTransactionManager` and the line numbers in
+> `ProjectManager` mentioned here no longer exist in this form (ADR-002). The
+> current inventory of dead code, inefficiencies and bugs is in
+> [REVIEW-PLAN.md](REVIEW-PLAN.md) and [`review/`](review/).
+
+*Generated on: 2026-10-01*  
+*Status: analysis for group 9 completion*  
+*Responsible: 3-layer architecture migration*
 
 ---
 
 ## Executive Summary
 
-| Kategorie | Anzahl | Status | Empfehlung |
-|-----------|--------|--------|-------------|
-| Unbenutzte private Methoden | 8 | ✅ Identifiziert | Löschen nach Review |
-| Unbenutzte private Felder | 4 | ✅ Identifiziert | Löschen nach Review |
-| @Deprecated Klassen | 2 | ⚠️ Teilweise migriert | BaseJavaTool kann gelöscht werden |
-| @Deprecated Methoden in BaseEditTool | 9 | ⚠️ Legacy-Support | Behalten oder migrieren |
-| Unreachable Code (von Entry Points) | 353 | ⚠️ Architekturrelevant | Analyse erforderlich |
-| Statische Methodenzugriffe auf BaseJavaTool | 4 | ❌ Blockierend | Migration erforderlich |
+| Category | Count | Status | Recommendation |
+|----------|-------|--------|----------------|
+| Unused private methods | 8 | ✅ Identified | Delete after review |
+| Unused private fields | 4 | ✅ Identified | Delete after review |
+| @Deprecated classes | 2 | ⚠️ Partially migrated | BaseJavaTool can be deleted |
+| @Deprecated methods in BaseEditTool | 9 | ⚠️ Legacy support | Keep or migrate |
+| Unreachable code (from entry points) | 353 | ⚠️ Architecture-relevant | Analysis required |
+| Static method calls on BaseJavaTool | 4 | ❌ Blocking | Migration required |
 
 ---
 
-## 1. Unbenutzte Private Elemente (Direkt löschbar)
+## 1. Unused private elements (directly deletable)
 
-### 1.1 Unbenutzte Private Methoden
+### 1.1 Unused private methods
 
-**Datei: `ProjectManager.java`** (7 Methoden - alle privat)
+**File: `ProjectManager.java`** (7 methods - all private)
 
-| Methode | Linie | Signature | Status |
-|---------|-------|-----------|--------|
-| `setAndSaveJavaHome` | 654 | `setAndSaveJavaHome(String)` | ✅ Löschen |
-| `applyJdkClasspath` | 576 | `applyJdkClasspath(Launcher)` | ✅ Löschen |
-| `findSourceDir` | 661 | `findSourceDir(Path, BuildDetector.BuildInfo)` | ✅ Löschen |
-| `resolveRealPath` | 637 | `resolveRealPath(Path)` | ✅ Löschen |
-| `countModules` | 677 | `countModules(Path, BuildDetector.BuildInfo)` | ✅ Löschen |
-| `addGradleSourceDirs` | 668 | `addGradleSourceDirs(Launcher, Path)` | ✅ Löschen |
-| `resolveRealJavaHome` | 646 | `resolveRealJavaHome()` | ✅ Löschen |
+| Method | Line | Signature | Status |
+|--------|------|-----------|--------|
+| `setAndSaveJavaHome` | 654 | `setAndSaveJavaHome(String)` | ✅ Delete |
+| `applyJdkClasspath` | 576 | `applyJdkClasspath(Launcher)` | ✅ Delete |
+| `findSourceDir` | 661 | `findSourceDir(Path, BuildDetector.BuildInfo)` | ✅ Delete |
+| `resolveRealPath` | 637 | `resolveRealPath(Path)` | ✅ Delete |
+| `countModules` | 677 | `countModules(Path, BuildDetector.BuildInfo)` | ✅ Delete |
+| `addGradleSourceDirs` | 668 | `addGradleSourceDirs(Launcher, Path)` | ✅ Delete |
+| `resolveRealJavaHome` | 646 | `resolveRealJavaHome()` | ✅ Delete |
 
-**Datei: `RewriteTransactionManager.java`** (1 Methode)
+**File: `RewriteTransactionManager.java`** (1 method)
 
-| Methode | Linie | Signature | Status |
-|---------|-------|-----------|--------|
-| `hasBuildFileChanges` | 477 | `hasBuildFileChanges(RewriteResult)` | ✅ Löschen |
+| Method | Line | Signature | Status |
+|--------|------|-----------|--------|
+| `hasBuildFileChanges` | 477 | `hasBuildFileChanges(RewriteResult)` | ✅ Delete |
 
-### 1.2 Unbenutzte Private Felder
+### 1.2 Unused private fields
 
-**Datei: `LombokMemberPredictor.java`** (2 Felder)
+**File: `LombokMemberPredictor.java`** (2 fields)
 
-| Feld | Linie | Typ | Status |
-|------|-------|-----|--------|
-| `FIELD_LEVEL_GETTER` | 48 | `Set<String>` | ✅ Löschen |
-| `FIELD_LEVEL_SETTER` | 50 | `Set<String>` | ✅ Löschen |
+| Field | Line | Type | Status |
+|-------|------|------|--------|
+| `FIELD_LEVEL_GETTER` | 48 | `Set<String>` | ✅ Delete |
+| `FIELD_LEVEL_SETTER` | 50 | `Set<String>` | ✅ Delete |
 
-**Datei: `PomUtils.java`** (1 Feld)
+**File: `PomUtils.java`** (1 field)
 
-| Feld | Linie | Typ | Status |
-|------|-------|-----|--------|
-| `PARENT_VERSION` | 27 | `Pattern` | ✅ Löschen |
+| Field | Line | Type | Status |
+|-------|------|------|--------|
+| `PARENT_VERSION` | 27 | `Pattern` | ✅ Delete |
 
-**Datei: `GradleBuildResolverIntegrationTest.java`** (Test-Datei)
+**File: `GradleBuildResolverIntegrationTest.java`** (test file)
 
-| Feld | Linie | Typ | Status |
-|------|-------|-----|--------|
-| `tempTestDir` | 29 | `Path` | ✅ Löschen (Test) |
+| Field | Line | Type | Status |
+|-------|------|------|--------|
+| `tempTestDir` | 29 | `Path` | ✅ Delete (test) |
 
 ---
 
-## 2. @Deprecated Klassen
+## 2. @Deprecated classes
 
 ### 2.1 BaseJavaTool.java
 
-**Status: KANN GELÖSCHT WERDEN** ⭐
+**Status: CAN BE DELETED** ⭐
 
-- **Linie 78**: `@Deprecated` auf Klassenebene
-- **Aktueller Status**: Keine Klasse erbt mehr von BaseJavaTool (0 Vererbungen)
-- **Migration Status**: ✅ Alle Tools migriert zu BaseReadTool/BaseEditTool
+- **Line 78**: `@Deprecated` at class level
+- **Current status**: No class inherits from BaseJavaTool anymore (0 inheritances)
+- **Migration status**: ✅ All tools migrated to BaseReadTool/BaseEditTool
 
-**ABER: Blockierende statische Methodenzugriffe** ❌
+**BUT: Blocking static method calls** ❌
 
-| Aufrufstelle | Linie | Methode | Alternative |
-|---------------|-------|---------|------------|
-| `EditManager.java:101` | 101 | `BaseJavaTool.validateFingerprint(...)` | ✅ `BaseEditTool.validateFingerprint()` existiert (protected) |
-| `MoveClassTool.java:301` | 301 | `BaseJavaTool.replaceInCodeOnly(...)` | ❌ **FEHLEND** - Muss migriert werden |
-| `RenameSymbolTool.java:266` | 266 | `BaseJavaTool.replaceInCodeOnly(...)` | ❌ **FEHLEND** - Muss migriert werden |
-| `RemoveAnnotationTool.java:238` | 238 | `BaseJavaTool.validateAnnotationTarget(...)` | ✅ `BaseEditTool.validateAnnotationTarget()` existiert (protected) |
+| Call site | Line | Method | Alternative |
+|-----------|------|--------|-------------|
+| `EditManager.java:101` | 101 | `BaseJavaTool.validateFingerprint(...)` | ✅ `BaseEditTool.validateFingerprint()` exists (protected) |
+| `MoveClassTool.java:301` | 301 | `BaseJavaTool.replaceInCodeOnly(...)` | ❌ **MISSING** - must be migrated |
+| `RenameSymbolTool.java:266` | 266 | `BaseJavaTool.replaceInCodeOnly(...)` | ❌ **MISSING** - must be migrated |
+| `RemoveAnnotationTool.java:238` | 238 | `BaseJavaTool.validateAnnotationTarget(...)` | ✅ `BaseEditTool.validateAnnotationTarget()` exists (protected) |
 
-**Empfohlene Aktion**:
-1. `replaceInCodeOnly` nach `BaseEditTool` migrieren (statisch oder Instanzmethode)
-2. Aufrufe in EditManager, MoveClassTool, RenameSymbolTool, RemoveAnnotationTool anpassen
-3. BaseJavaTool löschen
+**Recommended action**:
+1. Migrate `replaceInCodeOnly` to `BaseEditTool` (static or instance method)
+2. Adjust the calls in EditManager, MoveClassTool, RenameSymbolTool, RemoveAnnotationTool
+3. Delete BaseJavaTool
 
 ### 2.2 DirtyChecker.java
 
-**Status: TEILWEISE DEPRECATED**
+**Status: PARTIALLY DEPRECATED**
 
-- **Linie 37**: `@Deprecated` auf Methode `checkDirtyFullScan`
-- **Hinweis**: Vollständige 3-Ebenen-Konformität erfordert Nutzung von `checkDirtyAgainstSnapshot()`
-- **Empfehlung**: Methode behalten, aber Dokumentation aktualisieren
-
----
-
-## 3. @Deprecated Methoden in BaseEditTool
-
-Die folgenden Methoden sind in BaseEditTool als `@Deprecated` markiert (9 Methoden):
-
-| Methode | Linie | Zweck | Empfehlung |
-|---------|-------|-------|-------------|
-| `replaceAnnotationInWindow` | 884 | Annotation-Ersetzung | In neue Helper-Klasse migrieren |
-| `findMatchingParen` (überladen) | 918, 887 | Klammern finden | In Helper-Klasse migrieren |
-| `classClosingBraceOffset` | 940 | Klassen-Endklammern | **Schon in BaseEditTool vorhanden** (Linie 907) |
-| `locateFreshType` | 1037 | Typ-Lokalisierung | **Schon in BaseEditTool vorhanden** (Linie 885) |
-| `locateFreshMethod` | 1099 | Methoden-Lokalisierung | **Schon in BaseEditTool vorhanden** (Linie 1333) |
-| `validateAnnotationTarget` | 1178 | Annotation-Validierung | **Schon in BaseEditTool vorhanden** (Linie 1083) |
-| `replaceInCodeOnly` | 1261 | Code-Ersetzung | **FEHLEND** - Nach BaseEditTool migrieren |
-| `insertImports` | 1332 | Import-Einfügung | In BaseEditTool prüfen |
-
-**Wichtig**: 
-- 5 Methoden existieren bereits in BaseEditTool (nicht deprecated)
-- 2 Methoden müssen noch migriert werden
-- 2 Methoden können behalten oder in Helper-Klasse verschoben werden
+- **Line 37**: `@Deprecated` on method `checkDirtyFullScan`
+- **Note**: Full 3-layer conformance requires using `checkDirtyAgainstSnapshot()`
+- **Recommendation**: keep the method, but update the documentation
 
 ---
 
-## 4. Unreachable Code Analyse
+## 3. @Deprecated methods in BaseEditTool
 
-### 4.1 Übersicht
+The following methods are marked `@Deprecated` in BaseEditTool (9 methods):
 
-- **Gesamt unreachable Elemente**: 353 (von 600 Test-Methoden als Entry Points)
-- **Hauptproblem**: Viele Typen und Methoden sind nur durch Reflection/Dependency Injection erreichbar
-- **Architektonische Relevanz**: Dies ist NORMAL für Framework-Code
+| Method | Line | Purpose | Recommendation |
+|--------|------|---------|----------------|
+| `replaceAnnotationInWindow` | 884 | Annotation replacement | Migrate to a new helper class |
+| `findMatchingParen` (overloaded) | 918, 887 | Finding parentheses | Migrate to a helper class |
+| `classClosingBraceOffset` | 940 | Class closing brace | **Already present in BaseEditTool** (line 907) |
+| `locateFreshType` | 1037 | Type localization | **Already present in BaseEditTool** (line 885) |
+| `locateFreshMethod` | 1099 | Method localization | **Already present in BaseEditTool** (line 1333) |
+| `validateAnnotationTarget` | 1178 | Annotation validation | **Already present in BaseEditTool** (line 1083) |
+| `replaceInCodeOnly` | 1261 | Code replacement | **MISSING** - migrate to BaseEditTool |
+| `insertImports` | 1332 | Import insertion | Check in BaseEditTool |
 
-### 4.2 Kategorien
+**Important**: 
+- 5 methods already exist in BaseEditTool (not deprecated)
+- 2 methods still need to be migrated
+- 2 methods can be kept or moved to a helper class
 
-#### 4.2.1 Erwartet Unreachable (Framework-Code)
+---
 
-**Build-System & Projekt-Detektion:**
-- `BuildDetector.BuildType` (Enum)
-- `BuildDetector.BuildInfo` (Klasse)
+## 4. Unreachable code analysis
+
+### 4.1 Overview
+
+- **Total unreachable elements**: 353 (out of 600 test methods as entry points)
+- **Main problem**: Many types and methods are reachable only via reflection/dependency injection
+- **Architectural relevance**: This is NORMAL for framework code
+
+### 4.2 Categories
+
+#### 4.2.1 Expected unreachable (framework code)
+
+**Build system & project detection:**
+- `BuildDetector.BuildType` (enum)
+- `BuildDetector.BuildInfo` (class)
 - `BuildDetector.findSourceDir(...)`
 - `LombokDetector.LombokInfo`
-- `LombokDelomboker`-Methoden
+- `LombokDelomboker` methods
 
-**Model & State:**
+**Model & state:**
 - `BuildContext`, `BuildDiagnostic`, `ModuleContext`
-- `ProjectEntryFactory` - alle Methoden
-- `Fingerprint` (Klasse)
+- `ProjectEntryFactory` - all methods
+- `Fingerprint` (class)
 
-**Edit & Rewrite:**
-- `EditEvent.Type` (Enum)
-- `SnapshotEvent` - alle Methoden
-- `ValidationEvent` - alle Methoden
+**Edit & rewrite:**
+- `EditEvent.Type` (enum)
+- `SnapshotEvent` - all methods
+- `ValidationEvent` - all methods
 - `RewritePlan`, `RewriteDiagnostic`, `SpoonAnalysis`, etc.
 
 **Utilities:**
 - `BackupConfig.MINIMAL_EXTENSIONS`
-- `LineEndings.LineEndings()` (Konstruktor)
-- `TransactionState` - diverse Methoden
+- `LineEndings.LineEndings()` (constructor)
+- `TransactionState` - various methods
 
-#### 4.2.2 Falsch Positiv (Wahrscheinlich erreicht)
+#### 4.2.2 False positive (probably reached)
 
-- `JavaMcpServer.rewriteTransactionManager()` - Wird über MCP-Tool-Aufrufe erreicht
-- Alle `*Tool`-Klassen - Werden über MCP-Server dynamisch aufgerufen
+- `JavaMcpServer.rewriteTransactionManager()` - reached via MCP tool calls
+- All `*Tool` classes - called dynamically via the MCP server
 
-### 4.3 Empfehlung
+### 4.3 Recommendation
 
-**KEINE LOESCHUNG** von unreachable Code, da:
-1. Framework-Code oft über Reflection/DI erreicht wird
-2. MCP-Tools werden dynamisch über `JavaMcpServer` aufgerufen
-3. Die 353 Elemente sind größtenteils Framework-Infrastruktur
+**DO NOT DELETE** unreachable code, because:
+1. Framework code is often reached via reflection/DI
+2. MCP tools are called dynamically via `JavaMcpServer`
+3. The 353 elements are mostly framework infrastructure
 
-**Aktion**: Dokumentation aktualisieren, dass dies erwartetes Verhalten ist.
+**Action**: update the documentation to state that this is expected behavior.
 
 ---
 
-## 5. Statische Methodenzugriffe - Migration erforderlich
+## 5. Static method calls - migration required
 
-### 5.1 Kritische Abhängigkeiten
+### 5.1 Critical dependencies
 
 #### EditManager.java
 
 ```java
-// Linie 101
+// Line 101
 BaseJavaTool.validateFingerprint(entry, file, expectedFingerprint);
 ```
 
-**Lösung**: Methode `validateFingerprint` in BaseEditTool ist bereits vorhanden (Linie 419), aber `protected`. 
-- **Option 1**: Methode auf `public static` ändern
-- **Option 2**: EditManager erhält BaseEditTool-Instanz und ruft protected Methode auf
-- **Empfehlung**: **Option 2** (bessere Kapselung)
+**Solution**: The method `validateFingerprint` in BaseEditTool already exists (line 419), but is `protected`. 
+- **Option 1**: change the method to `public static`
+- **Option 2**: EditManager gets a BaseEditTool instance and calls the protected method
+- **Recommendation**: **Option 2** (better encapsulation)
 
 #### MoveClassTool.java
 
 ```java
-// Linie 301
+// Line 301
 String updatedContent = BaseJavaTool.replaceInCodeOnly(content, qualPattern, newQualified);
 ```
 
-**Lösung**: 
-1. `replaceInCodeOnly` nach `BaseEditTool` migrieren (statisch)
-2. Aufruf in MoveClassTool anpassen
+**Solution**: 
+1. Migrate `replaceInCodeOnly` to `BaseEditTool` (static)
+2. Adjust the call in MoveClassTool
 
 #### RenameSymbolTool.java
 
 ```java
-// Linie 266
+// Line 266
 newContent = BaseJavaTool.replaceInCodeOnly(source, namePattern, newName);
 ```
 
-**Lösung**: Gleiche wie MoveClassTool
+**Solution**: Same as MoveClassTool
 
 #### RemoveAnnotationTool.java
 
 ```java
-// Linie 238
+// Line 238
 String targetErr = BaseJavaTool.validateAnnotationTarget(targetType, targetName);
 ```
 
-**Lösung**: Methode existiert bereits in BaseEditTool (Linie 1083) als `protected static`.
-- **Option 1**: Aufruf auf `BaseEditTool.validateAnnotationTarget` ändern
-- **Option 2**: Methode auf `public static` ändern
-- **Empfehlung**: **Option 1** (da BaseEditTool bereits importiert ist)
+**Solution**: The method already exists in BaseEditTool (line 1083) as `protected static`.
+- **Option 1**: change the call to `BaseEditTool.validateAnnotationTarget`
+- **Option 2**: change the method to `public static`
+- **Recommendation**: **Option 1** (since BaseEditTool is already imported)
 
 ---
 
-## 6. Konsolidierungsmöglichkeiten
+## 6. Consolidation opportunities
 
-### 6.1 Helper-Klassen Potenzial
+### 6.1 Helper class potential
 
-Die folgenden Methoden in BaseJavaTool und BaseEditTool könnten in eine **`CodeEditUtils`** Helper-Klasse extrahiert werden:
+The following methods in BaseJavaTool and BaseEditTool could be extracted into a **`CodeEditUtils`** helper class:
 
-| Methode | Aktueller Standort | Zweck | Empfehlung |
-|---------|-------------------|-------|-------------|
-| `replaceInCodeOnly` | BaseJavaTool:1238 | Code-Ersetzung ohne String-Literale | ✅ Extrahirren |
-| `replaceAnnotationInWindow` | BaseEditTool:884 | Annotation-Fenster-Ersetzung | ✅ Extrahirren |
-| `findMatchingParen` | BaseEditTool:918, 887 | Klammern finden | ✅ Extrahirren |
-| `classClosingBraceOffset` | BaseEditTool:907 | Klassen-Endklammern finden | ✅ Extrahirren |
-| `insertImports` | BaseEditTool:1332 | Import-Einfügung | ✅ Extrahirren |
+| Method | Current location | Purpose | Recommendation |
+|--------|------------------|---------|----------------|
+| `replaceInCodeOnly` | BaseJavaTool:1238 | Code replacement without string literals | ✅ Extract |
+| `replaceAnnotationInWindow` | BaseEditTool:884 | Annotation window replacement | ✅ Extract |
+| `findMatchingParen` | BaseEditTool:918, 887 | Finding parentheses | ✅ Extract |
+| `classClosingBraceOffset` | BaseEditTool:907 | Finding the class closing brace | ✅ Extract |
+| `insertImports` | BaseEditTool:1332 | Import insertion | ✅ Extract |
 
-**Vorteile**:
-- Reduziert Komplexität von BaseEditTool
-- Wiederverwendbar in anderen Komponenten
-- Bessere Testbarkeit
+**Advantages**:
+- Reduces the complexity of BaseEditTool
+- Reusable in other components
+- Better testability
 
-### 6.2 Konsolidierung mit anderen Klassen
+### 6.2 Consolidation with other classes
 
 **ProjectManager.java**:
-- Enthält 7 unbenutzte private Methoden für JDK/Build-Path-Resolution
-- Diese könnten in **`JdkUtils`** oder **`BuildPathUtils`** extrahiert werden
-- Aktuell nur unbenutzt, weil sie nie aufgerufen werden
+- Contains 7 unused private methods for JDK/build path resolution
+- These could be extracted into **`JdkUtils`** or **`BuildPathUtils`**
+- Currently only unused because they are never called
 
 **PomUtils.java**:
-- `PARENT_VERSION` Pattern wird nie verwendet
-- `hasParent`, `extractParentGroupId`, `extractParentArtifactId` könnten in **`MavenUtils`** konsolidiert werden
+- The `PARENT_VERSION` pattern is never used
+- `hasParent`, `extractParentGroupId`, `extractParentArtifactId` could be consolidated into **`MavenUtils`**
 
 ---
 
-## 7. Sofort umsetzbare Aktionen (Priorität)
+## 7. Immediately actionable items (priority)
 
-### 7.1 Hochpriorität (Blockiert Löschung von BaseJavaTool)
+### 7.1 High priority (blocks deletion of BaseJavaTool)
 
-1. **`replaceInCodeOnly` nach BaseEditTool migrieren**
-   - Methode aus BaseJavaTool (Linie 1238) kopieren
-   - In BaseEditTool als `protected static` einfügen
-   - Aufrufe in MoveClassTool und RenameSymbolTool anpassen
+1. **Migrate `replaceInCodeOnly` to BaseEditTool**
+   - Copy the method from BaseJavaTool (line 1238)
+   - Insert it into BaseEditTool as `protected static`
+   - Adjust the calls in MoveClassTool and RenameSymbolTool
    
-2. **EditManager.java - validateFingerprint Aufruf anpassen**
-   - Option: EditManager erhält BaseEditTool-Referenz
-   - Oder: Methode in BaseEditTool auf `public static` ändern
-
-3. **RemoveAnnotationTool.java - Aufruf anpassen**
+2. **EditManager.java - adjust the validateFingerprint call**
+   - Option: EditManager gets a BaseEditTool reference
+   - Or: change the method in BaseEditTool to `public static`
+   
+3. **RemoveAnnotationTool.java - adjust the call**
    - `BaseJavaTool.validateAnnotationTarget` → `BaseEditTool.validateAnnotationTarget`
 
-4. **BaseJavaTool löschen** (nach 1-3)
+4. **Delete BaseJavaTool** (after 1-3)
+   
 
-### 7.2 Mittelpriorität (Code-Hygiene)
+### 7.2 Medium priority (code hygiene)
 
-5. **ProjectManager.java bereinigen**
-   - 7 unbenutzte private Methoden löschen
+5. **Clean up ProjectManager.java**
+   - Delete 7 unused private methods
 
-6. **LombokMemberPredictor.java bereinigen**
-   - 2 unbenutzte private Felder löschen
+6. **Clean up LombokMemberPredictor.java**
+   - Delete 2 unused private fields  
 
-7. **PomUtils.java bereinigen**
-   - `PARENT_VERSION` Pattern löschen
+7. **Clean up PomUtils.java**
+   - Delete the `PARENT_VERSION` pattern
 
-### 7.3 Niedrigpriorität (Architektur-Verbesserung)
+### 7.3 Low priority (architecture improvement)
 
-8. **Helper-Klasse `CodeEditUtils` erstellen**
-   - Code-Edit-Helper-Methoden extrahieren
+8. **Create the `CodeEditUtils` helper class**
+   - Extract code edit helper methods
 
-9. **DirtyChecker.java - @Deprecated Methode aktualisieren**
-   - Dokumentation verbessern
+9. **DirtyChecker.java - update the @Deprecated method**
+   - Improve the documentation
 
 ---
 
-## 8. Tool-Empfehlungen
+## 8. Tool recommendations
 
-### 8.1 Vorhandene Java-Lens Tools
+### 8.1 Existing Java-Lens tools
 
-✅ **Verfügbar und genutzt:**
+✅ **Available and used:**
 
-1. **`javalens_find_unused_code`** - Finde unbenutzte private Methoden/Felder
+1. **`javalens_find_unused_code`** - Find unused private methods/fields
    ```bash
    javalens_find_unused_code
    ```
 
-2. **`javalens_find_unreachable_code`** - Finde Code, der nicht von Entry Points erreichbar ist
+2. **`javalens_find_unreachable_code`** - Find code that is not reachable from entry points
    ```bash
    javalens_find_unreachable_code
    ```
 
-3. **`javalens_find_annotation_usages`** - Finde alle @Deprecated-Nutzungen
+3. **`javalens_find_annotation_usages`** - Find all @Deprecated usages
    ```bash
    javalens_find_annotation_usages(typeName="java.lang.Deprecated")
    ```
 
-### 8.2 Fehlende Tools (Manuelle Analyse erforderlich)
+### 8.2 Missing tools (manual analysis required)
 
-❌ **Nicht verfügbar, aber nützlich:**
+❌ **Not available, but useful:**
 
-1. **Statische Analyse von Methodenzugriffen**
-   - Welche statischen Methoden werden wo aufgerufen?
+1. **Static analysis of method calls**
+   - Which static methods are called where?
    - **Workaround**: `grep -r "Klassenname\.methode" src/`
 
-2. **Abhängigkeitsgraph für Klassen**
-   - Welche Klassen hängen von welchen ab?
+2. **Dependency graph for classes**
+   - Which classes depend on which?
    - **Workaround**: `javalens_get_dependency_graph`
 
-3. **Vererbungshierarchie Analyse**
-   - Welche Klassen erben von welchen?
-   - **Verfügbar**: `javalens_get_type_hierarchy`
+3. **Inheritance hierarchy analysis**
+   - Which classes inherit from which?
+   - **Available**: `javalens_get_type_hierarchy`
 
 ---
 
-## 9. Implementierungsplan
+## 9. Implementation plan
 
-### Phase 1: Kritische Blocker lösen (1-2 Tage)
+### Phase 1: Resolve critical blockers (1-2 days)
 
 ```
-1. replaceInCodeOnly nach BaseEditTool migrieren
-   ├─ Methode aus BaseJavaTool extrahieren
-   ├─ In BaseEditTool einfügen
-   └─ Aufrufe in MoveClassTool, RenameSymbolTool anpassen
+1. Migrate replaceInCodeOnly to BaseEditTool
+   ├─ Extract the method from BaseJavaTool
+   ├─ Insert into BaseEditTool
+   └─ Adjust the calls in MoveClassTool, RenameSymbolTool
 
-2. EditManager - validateFingerprint anpassen
-   ├─ BaseEditTool.validateFingerprint auf public static ändern
-   └─ Oder EditManager erhält BaseEditTool-Instanz
+2. EditManager - adjust validateFingerprint
+   ├─ Change BaseEditTool.validateFingerprint to public static
+   └─ Or EditManager gets a BaseEditTool instance
 
-3. RemoveAnnotationTool - validateAnnotationTarget Aufruf anpassen
+3. RemoveAnnotationTool - adjust the validateAnnotationTarget call
    └─ BaseJavaTool → BaseEditTool
 
-4. BaseJavaTool löschen
-   └─ Alle Referenzen prüfen und entfernen
+4. Delete BaseJavaTool
+   └─ Check and remove all references
 ```
 
-### Phase 2: Code-Hygiene (1 Tag)
+### Phase 2: Code hygiene (1 day)
 
 ```
-5. ProjectManager - 7 unbenutzte Methoden löschen
-6. LombokMemberPredictor - 2 unbenutzte Felder löschen  
-7. PomUtils - 1 unbenutztes Feld löschen
+5. ProjectManager - delete 7 unused methods
+6. LombokMemberPredictor - delete 2 unused fields  
+7. PomUtils - delete 1 unused field
 ```
 
-### Phase 3: Dokumentation (0.5 Tag)
+### Phase 3: Documentation (0.5 day)
 
 ```
-8. ARCHITEKTUR-REVIEW-GRUPPE-A.md aktualisieren
-   └─ Gruppe 9 als abgeschlossen markieren
-   └─ BaseJavaTool-Löschung dokumentieren
+8. Update ARCHITEKTUR-REVIEW-GRUPPE-A.md
+   └─ Mark group 9 as completed
+   └─ Document the BaseJavaTool deletion
 
-9. CODE-CLEANUP-ANALYSIS.md (dieses Dokument) finalisieren
+9. Finalize CODE-CLEANUP-ANALYSIS.md (this document)
 ```
 
-### Phase 4: Optionale Verbesserungen (2-3 Tage)
+### Phase 4: Optional improvements (2-3 days)
 
 ```
-10. CodeEditUtils Helper-Klasse erstellen
-11. Unreachable Code analysieren und dokumentieren
-12. Build-Path-Utilities extrahieren
+10. Create the CodeEditUtils helper class
+11. Analyze and document unreachable code
+12. Extract build path utilities
 ```
 
 ---
 
-## 10. Zusammenfassung & Empfehlungen
+## 10. Summary & recommendations
 
-### ✅ SOFORT UMSETZBAR
+### ✅ IMMEDIATELY ACTIONABLE
 
-1. **BaseJavaTool kann gelöscht werden** - Keine Vererbung mehr vorhanden
-2. **4 statische Methodenzugriffe müssen migriert werden** - Blockieren die Löschung
-3. **12 unbenutzte private Elemente können gelöscht werden** - Direkte Verbesserung
+1. **BaseJavaTool can be deleted** - no inheritance left
+2. **4 static method calls must be migrated** - they block the deletion
+3. **12 unused private elements can be deleted** - direct improvement
 
-### ⚠️ VORSICHT
+### ⚠️ CAUTION
 
-1. **Unreachable Code (353 Elemente) NICHT löschen** - Framework-Code ist oft dynamisch erreichbar
-2. **@Deprecated Methoden in BaseEditTool behalten** - Könnten noch verwendet werden
+1. **DO NOT delete unreachable code (353 elements)** - framework code is often dynamically reachable
+2. **Keep @Deprecated methods in BaseEditTool** - they might still be used
 
-### 🎯 PRIORITÄT
+### 🎯 PRIORITY
 
-1. **Höchste Priorität**: Statische Methodenzugriffe auf BaseJavaTool migrieren
-2. **Hohe Priorität**: BaseJavaTool löschen
-3. **Mittlere Priorität**: Unbenutzte private Elemente bereinigen
+1. **Highest priority**: migrate static method calls on BaseJavaTool
+2. **High priority**: delete BaseJavaTool
+3. **Medium priority**: clean up unused private elements
 
-### 📊 ERFOLGSMETRIKEN
+### 📊 SUCCESS METRICS
 
-- **Vorher**: 1 deprecated Klasse, 9 deprecated Methoden, 12 unbenutzte Elemente
-- **Nachher**: 0 deprecated Klassen, 0-2 deprecated Methoden, 0 unbenutzte Elemente
-- **Code-Qualität**: +15% (geschätzt)
-- **Wartbarkeit**: +20% (geschätzt)
+- **Before**: 1 deprecated class, 9 deprecated methods, 12 unused elements
+- **After**: 0 deprecated classes, 0-2 deprecated methods, 0 unused elements
+- **Code quality**: +15% (estimated)
+- **Maintainability**: +20% (estimated)
 
 ---
 
-*Analyse durchgeführt mit Java-Lens MCP Server und manueller Code-Review*
-*Tool-Abfragen: javalens_find_unused_code, javalens_find_unreachable_code, grep*
+*Analysis performed with the Java-Lens MCP server and manual code review*
+*Tool queries: javalens_find_unused_code, javalens_find_unreachable_code, grep*

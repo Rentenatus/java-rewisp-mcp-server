@@ -1,0 +1,176 @@
+org:
+  slf4j:
+    simpleLogger:
+      # logFile wird in JavaMcpServer.configureLogFile() gesetzt:
+      # Standard ~/.rewisp/logs/mcp-server.log (Ueberschreibung
+      # via System-Property mcp.server.logFile).
+      defaultLogLevel: info
+      showDateTime: true
+      dateTimeFormat: "yyyy-MM-dd HH:mm:ss.SSS"
+      showThreadName: true
+      showLogName: true
+      showShortLogName: true
+      log:
+        io.modelcontextprotocol.spec.McpServerSession: error
+
+rewrite:
+  recipes:
+    - id: add-annotation
+      displayName: Add Annotation
+      description: Adds an annotation to a class, method, or field
+      class: de.jare.rewisp.rewrite.recipes.AddAnnotationRecipe
+      risk: LOW
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - targetType
+        - className
+        - targetName
+        - annotation
+        - attributes
+    - id: add-field
+      displayName: Add Field
+      description: Adds a new field to an existing class
+      class: de.jare.rewisp.rewrite.recipes.AddFieldRecipe
+      risk: LOW
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - fieldName
+        - type
+        - modifiers
+        - initializer
+        - imports
+    - id: add-method
+      displayName: Add Method
+      description: Adds a new method to an existing class or interface
+      class: de.jare.rewisp.rewrite.recipes.AddMethodRecipe
+      risk: LOW
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - methodName
+        - returnType
+        - parameters
+        - modifiers
+        - body
+        - imports
+    - id: remove-member
+      displayName: Remove Member
+      description: Removes a method or field from a class
+      class: de.jare.rewisp.rewrite.recipes.RemoveMemberRecipe
+      risk: MEDIUM
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - memberName
+        - scope
+        - signature
+        - hard
+    - id: rename-symbol
+      displayName: Rename Symbol
+      description: Renames a class, method, or field including call sites
+      class: de.jare.rewisp.rewrite.recipes.RenameSymbolRecipe
+      risk: MEDIUM
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - oldName
+        - newName
+        - scope
+        - updateCallers
+    - id: move-class
+      displayName: Move Class
+      description: Moves a class to a different package, updating imports
+      class: de.jare.rewisp.rewrite.recipes.MoveClassRecipe
+      risk: MEDIUM
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - fullyQualifiedClassName
+        - targetPackage
+        - keepTypeName
+        - samePackageImports
+    - id: remove-annotation
+      displayName: Remove Annotation
+      description: Removes an annotation from a class, method, or field
+      class: de.jare.rewisp.rewrite.recipes.RemoveAnnotationRecipe
+      risk: LOW
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - targetType
+        - targetName
+        - annotation
+    - id: edit-annotation
+      displayName: Edit Annotation
+      description: Edits the attributes of an existing annotation
+      class: de.jare.rewisp.rewrite.recipes.EditAnnotationRecipe
+      risk: LOW
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - targetType
+        - targetName
+        - annotation
+        - newAttributes
+    - id: rewrite-signature
+      displayName: Rewrite Signature
+      description: Changes a method signature (return type and/or parameters)
+      class: de.jare.rewisp.rewrite.recipes.RewriteSignatureRecipe
+      risk: MEDIUM
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - methodName
+        - newReturnType
+        - newParameters
+        - mode
+        - imports
+    - id: replace-method-body
+      displayName: Replace Method Body
+      description: Replaces the entire body of an existing method
+      class: de.jare.rewisp.rewrite.recipes.ReplaceMethodBodyRecipe
+      risk: MEDIUM
+      mayChangeBuildFiles: false
+      requiresFullProject: false
+      enabled: true
+      allowedParameters:
+        - className
+        - methodName
+        - signature
+        - newBody
+        - imports
+
+project:
+  # Minuten nach Ablauf, bis das Spoon-Modell eines abgelaufenen Projekts freigegeben wird
+  evictionGraceMinutes: 5
+
+workspace:
+  allowedRoots: []
+  debounceMillis: 200
+  ignoredDirectories:
+    - target
+    - build
+    - .git
+    - .gradle
+    - .idea
+    - out
+    - node_modules
+    - .vscode

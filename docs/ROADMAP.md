@@ -1,160 +1,98 @@
-# Roadmap & Nächste Schritte
+# Roadmap & next steps
 
-**Version:** 1.1.1-REWRITE  
-**Letzte Aktualisierung:** 2026-10-01  
-**Status:** Gruppe 9 abgeschlossen, Gruppe 10 in Planung
-
----
-
-## 🎯 Aktueller Stand
-
-### ✅ Abgeschlossene Gruppen
-
-| Gruppe | Titel | Status | Fortschritt | Commit |
-|--------|-------|--------|-------------|--------|
-| **Gruppe 9** | 3-Schichten-Architektur Migration | ✅ **ABGESCHLOSSEN** | 100% | ecee4cc |
-| **Gruppe 8** | - | ✅ Abgeschlossen | 100% | - |
-| **Gruppe 7** | - | ✅ Abgeschlossen | 100% | - |
-
-### 📊 Gruppe 9 - Zusammenfassung
-
-**Ziel:** 3-Schichten-Architektur (SPOON → REWRITE → SPEICHER) durch Migration aller Tools von BaseJavaTool zu BaseReadTool/BaseEditTool.
-
-| Aufgabe | Status | Ergebnis |
-|---------|--------|----------|
-| BaseReadTool für SPOON-Tools erstellen | ✅ Fertig | 31 Tools migriert |
-| BaseEditTool für REWRITE-Tools erstellen | ✅ Fertig | 22 Tools migriert |
-| Alle Tools zuordnen | ✅ Fertig | 0 Tools erben von BaseJavaTool |
-| BaseJavaTool löschen | ✅ Fertig | Komplett entfernt (2026-10-01) |
-| Code-Bereinigung | ✅ Fertig | 11 unbenutzte Elemente gelöscht |
-| Tests anpassen | ✅ Fertig | Alle 600 Tests passieren |
+**Version:** 1.1.2
+**Last updated:** 2026-11-23
+**Status:** stabilization phase — review completed, implementation per [REVIEW-PLAN.md](REVIEW-PLAN.md)
 
 ---
 
-## 🚀 Geplante Gruppen
+## Current state
 
-### 📋 Gruppe 10: Snapshot-Service vervollständigen
+### Completed
 
-**Priorität:** HOCH  
-**Ziel:** Content-Hashes + Snapshot-Race-Erkennung für deterministisches Verhalten
+| Group | Title | Result |
+|-------|-------|--------|
+| 7, 8 | (early groups) | completed |
+| 9 | 3-layer architecture (`BaseReadTool`/`BaseEditTool`) | `BaseJavaTool` removed |
+| 10 | Snapshot service: content hash and race detection | **already implemented** (previously listed as "planned"): `ContentHasher`, `SnapshotService.captureStable` (double read, `MAX_RETRIES=3`, race events), `refreshFiles`/`applyContents`, tests present. Only optimization (AP-7.2) and platform determinism (`rootHash`, AP-2.12) remain open. |
+| — | ADR-002: one write path | plan-based apply path removed (35 tools) |
+| — | Phase 8 "Observability/Workspace": `WorkspaceWatcher`, `ChangeTracker`, `WorkspaceRegistry`, `EditEventBus`, `MetricsCollector` | implemented, but partly without effect/tests (see REVIEW-PLAN phases 2, 6) |
 
-| Aufgabe | Status | Priorität | Abhängigkeiten |
-|---------|--------|----------|---------------|
-| Content-Hash-Berechnung implementieren | ⏳ Geplant | Hoch | - |
-| Snapshot-Race-Erkennung implementieren | ⏳ Geplant | Hoch | Content-Hashes |
-| Deterministische Snapshot-Tests erstellen | ⏳ Geplant | Mittel | Gruppe 10 |
-| Snapshot-Service Dokumentation aktualisieren | ⏳ Geplant | Niedrig | Gruppe 10 |
+### Review 2026-10-25
 
-**Erwartetes Ergebnis:**
-- Stabilere Snapshot-Erkennung
-- Bessere Race-Condition-Handhabung
-- Deterministische Builds
+Static review of the entire code: ≈ 125 independent bugs, ≈ 50 dead-code findings, 35 inefficiencies, 43 concept points (incl. the `build/` package and test hygiene). Result: [REVIEW-PLAN.md](REVIEW-PLAN.md) with 149 work packages in 10 phases, detailed reports in [`review/`](review/).
 
 ---
 
-### 📋 Gruppe 11: Post-Edit-Validierung mit Spoon
+## Next steps (in order)
 
-**Priorität:** HOCH  
-**Ziel:** OpenRewrite-Ergebnisse müssen automatisch validiert werden
+| Priority | Phase | Goal |
+|----------|-------|------|
+| 1 | **0 Foundation** | build reproducible under JDK 21, unify Java target, create Git repo |
+| 2 | **1 Edit consistency** | eliminate silent data loss in the edit/transaction path |
+| 3 | **2 Snapshot/watcher** | one ignore rule, correct watcher, honest dirty detection |
+| 4 | **3 Read tools** | same freshness, complete reference search, bugs #14–#16 |
+| 5 | **4 Recipes** | close rename/signature/import gaps |
+| 6 | **5–6** | clean up lifecycle/Lombok/build; remove dead code |
+| 7 | **7 Performance** | measure first, then snapshot/parser caching, incremental Spoon update |
 
-| Aufgabe | Status | Priorität | Abhängigkeiten |
-|---------|--------|----------|---------------|
-| Spoon-based Validation Service erstellen | ⏳ Geplant | Hoch | Gruppe 10 |
-| Post-Edit-Validation Hooks implementieren | ⏳ Geplant | Hoch | Gruppe 11 |
-| Validation-Tests erstellen | ⏳ Geplant | Mittel | Gruppe 11 |
-| Integration mit RewriteTransactionManager | ⏳ Geplant | Mittel | Gruppe 11 |
+### Group 11: post-edit validation with Spoon (implemented, D2)
 
-**Erwartetes Ergebnis:**
-- Automatische Validierung aller Edit-Operationen
-- Frühzeitige Fehlererkennung
-- Bessere Code-Qualität
-
----
-
-## 🔬 Technische Verbesserungen
-
-### SPOON-Metriken nachimplementieren
-
-**Ziel:** Java-Lens-Analyse-Features in SPOON nachbauen
-
-| Feature | Java-Lens Tool | SPOON-Äquivalent | Priorität | Komplexität |
-|---------|----------------|------------------|----------|-------------|
-| Unbenutzte Code-Erkennung | `javalens_find_unused_code` | ⏳ `spoon_find_unused_code` | Mittel | ⭐⭐⭐⭐ |
-| Unreachable Code-Erkennung | `javalens_find_unreachable_code` | ⏳ `spoon_find_unreachable` | Niedrig | ⭐⭐⭐⭐⭐ |
-| @Deprecated-Nutzungen finden | `javalens_find_annotation_usages` | ✅ `find_annotated_elements` (teilweise) | Hoch | ⭐⭐ |
-| Methodenzugriffsanalyse | - | ⏳ `spoon_analyze_call_graph` | Niedrig | ⭐⭐⭐⭐⭐ |
-
-**Hinweis:** SPOON hat Einschränkungen bei der Erkennung von Entry Points (main-Methoden, Tests), daher ist unreachable Code schwer zu bestimmen.
+**Status:** implemented (2026-10-29) as a lean pre-write check: `SpoonModelService.validateEdit` builds a candidate model from the rewrite state plus the edit before writing and rejects edits that would make the project uncompilable with `EDIT_BREAKS_COMPILATION` (nothing is written). The validated model is adopted after the write (one build per edit, otherwise fallback to the regular rebuild). Not checked: `edit_line`, RAW/noclasspath projects (Spoon reports no type errors there), delomboked projects and already broken projects. The earlier `SpoonEngine` layer was deleted. Open: type errors in RAW projects would only be checkable with a real compiler (javac run).
 
 ---
 
-### Code-Qualitätsverbesserungen
+## Technical improvements
 
-| Verbesserung | Beschreibung | Priorität |
-|--------------|--------------|----------|
-| Helper-Klassen erstellen | CodeEditUtils für gemeinsame Edit-Operationen | Mittel |
-| Build-Path-Utilities extrahieren | JdkUtils, MavenUtils, GradleUtils | Niedrig |
-| DirtyChecker bereinigen | @Deprecated Methoden entfernen | Niedrig |
-| TransactionState optimieren | Performance-Verbesserungen | Niedrig |
+### Analysis features
 
----
+The tools `find_unused_code`, `find_unreachable_code`, `find_deprecated_usages` existed as code but were not registered, untested and buggy (among others an endless loop on cycles in the call graph). Recommendation (D1): delete and, if needed, rebuild with a correct call graph (constructors, overrides, method references, entry points). The earlier reference to "Java Lens equivalents" is obsolete.
 
-## 📅 Zeitplan (geschätzt)
+### Code quality
 
-| Phase | Dauer | Priorität | Start |
-|-------|-------|----------|-------|
-| **Gruppe 10** | 2-3 Tage | HOCH | Sofort |
-| **Gruppe 11** | 2-3 Tage | HOCH | Nach Gruppe 10 |
-| **SPOON-Metriken** | 3-5 Tage | MITTEL | Parallel zu Gruppe 10/11 |
-| **Code-Qualität** | 1-2 Tage | NIEDRIG | Nach Gruppe 11 |
+| Improvement | Package |
+|-------------|---------|
+| template method for the 13-times copied edit flow | AP-8.1 |
+| shared recipe helper class | AP-8.2 |
+| uniform `IgnoreRules` | AP-2.1 |
+| wire up or remove configuration | AP-5.18 |
 
 ---
 
-## 📊 Erfolgskennzahlen
+## Success metrics
 
-### Aktuell (nach Gruppe 9)
-
-| Metrik | Wert | Ziel |
-|--------|------|------|
-| Code-Qualität | +15% | +20% |
-| Wartbarkeit | +20% | +25% |
-| Test-Abdeckung | 600 Tests | 600+ Tests |
-| Code-Zeilen | -963 | -1.500+ |
-| Deprecated Code | 0 | 0 |
-| Unbenutzter Code | 1 | 0 |
-
-### Ziel (nach Gruppe 11)
-
-| Metrik | Aktuell | Ziel | Veränderung |
-|--------|---------|------|-------------|
-| Snapshot-Stabilität | Gut | Exzellent | +25% |
-| Edit-Validierung | Manuell | Automatisch | +100% |
-| Determinismus | Gut | Exzellent | +30% |
+| Metric | Today | Goal |
+|--------|-------|------|
+| Registered tools | 37 | 37 |
+| `@Test` methods (statically counted) | 567 | 650+ (every bug fix with regression test) |
+| Open bugs (high priority) | see BUGS.md | 0 |
+| Dead-code findings | ≈ 50 | 0 |
+| Tests for `WorkspaceWatcher`/`ChangeTracker` | 0 | ≥ 10 |
 
 ---
 
-## 🔗 Nützliche Links
+## Changelog
 
-- [ARCHITEKTUR.md](ARCHITEKTUR.md) - Architektur-Dokumentation
-- [CODE-CLEANUP-ANALYSIS.md](CODE-CLEANUP-ANALYSIS.md) - Code-Bereinigungsanalyse
-- [../README.md](../README.md) - Hauptdokument
+### 2026-11-23
+- Version set to **1.1.2** (root `pom.xml` + parent references in `src_rewisp`/`src_mcp`; `version.properties` follows via `${project.version}`).
+- All Markdown docs translated to English (README + `docs/*`); Javadoc of both modules reviewed, set to English and AI-agent references generalized to "AI agent".
+- `build.ps1` created: `.\build.ps1 test` (reactor test run over both modules), `.\build.ps1 -Jar` (fat JAR `src_mcp\target\rewisp-standalone.jar`); checks JDK 21, sets `MAVEN_ARGS` with `settings-central.xml` (Maven Central instead of a corporate mirror, also for resolver child processes). Doc references (README, ARCHITEKTUR, TESTING) switched back to `build.ps1`.
+- Doc alignment after the module split: ARCHITEKTUR package overview split across `src_rewisp`/`src_mcp` (`api`/`observability` added, `event` and deleted classes removed), tool count 37, test counts 478/358; `docs/review/*` marked as historical status 2026-10-25; outdated root `target/` deleted.
+- Maven build output moved out of the modules: `<directory>` in both module POMs points to `build/<artifactId>` in the repo root — `src_rewisp`/`src_mcp` stay clean without `target/`; fat JAR under `build/rewisp-mcp/rewisp-standalone.jar` (`build.ps1` and docs adjusted).
 
----
+### 2026-11-18
+- Two Maven modules under a parent POM: `src_rewisp` (rewisp-core, backend without MCP SDK) and `src_mcp` (rewisp-mcp, MCP binding). Backend directly usable from Java via `de.jare.rewisp.api.RewispDriver` (see ARCHITEKTUR, section "Module boundary").
 
-## 📝 Changelog
+### 2026-10-25
+- Review of all packages; docs (ARCHITEKTUR, ROADMAP, API-REFERENCE, TESTING, BUGS, README) updated against the code; `CODE-CLEANUP-ANALYSIS.md` marked historical.
+
+- ROADMAP: group 10 booked as implemented; group 11 re-evaluated.
+
+### Version 2.0.0 (mistral_lab)
+- ADR-002: one write path, 14 redundant read tools removed, 35 tools.
 
 ### Version 1.1.1-REWRITE
-- ✅ Gruppe 9 abgeschlossen: 3-Schichten-Architektur Migration
-- ✅ BaseJavaTool komplett entfernt
-- ✅ Alle Tools zu BaseReadTool/BaseEditTool migriert
-- ✅ Code-Bereinigung: 11 unbenutzte Elemente gelöscht
-- ✅ Alle 600 Tests passieren
+- Group 9: 3-layer migration, `BaseJavaTool` removed.
 
 ### Version 1.1.0
-- ✅ Gruppe 8 abgeschlossen
-- ✅ Gruppe 7 abgeschlossen
-
----
-
-*Roadmap aktualisiert am: 2026-10-01*
-*Verantwortlich: 3-Schichten-Architektur Migration*
+- Groups 7 and 8 completed.

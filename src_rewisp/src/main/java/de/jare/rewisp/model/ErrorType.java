@@ -1,0 +1,73 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Janusch Rentenatus
+ */
+package de.jare.rewisp.model;
+
+/**
+ * Stable error categories of the tool responses (field {@code errorType} of the domain errors) and of
+ * load/delombok exceptions. Replaces scattered string literals; the name is the value in the
+ * JSON response and therefore part of the API (see API-REFERENCE.md).
+ *
+ * @author Janusch Rentenatus
+ */
+public enum ErrorType {
+    ANNOTATION_NOT_FOUND,
+    BUILD_RESOLUTION_ERROR,
+    CLASS_EXISTS,
+    DOMAIN_ERROR,
+    DOWNLOAD_ERROR,
+    DUPLICATE_ANNOTATION,
+    ELEMENT_NOT_FOUND,
+    AMBIGUOUS_ELEMENT,
+    ERASURE_COLLISION,
+    EXTRACT_ERROR,
+    FIELD_EXISTS,
+    FILE_NOT_FOUND,
+    GIT_ERROR,
+    INVALID_CLASS_NAME,
+    EDIT_BREAKS_COMPILATION,
+    INVALID_MODE,
+    INVALID_PACKAGE,
+    INVALID_PARAMS,
+    INVALID_SCOPE,
+    INVALID_TARGET,
+    INVALID_TARGET_TYPE,
+    INVALID_TYPE,
+    LOMBOK_CACHE_ERROR,
+    LOMBOK_DELOMBOK_FAILED,
+    LOMBOK_DELOMBOK_INTERRUPTED,
+    LOMBOK_DELOMBOK_LAUNCH,
+    LOMBOK_DELOMBOK_TIMEOUT,
+    LOMBOK_INPUT_INVALID,
+    LOMBOK_JAR_MISSING,
+    LOMBOK_NO_SOURCES,
+    LOMBOK_NOT_DETECTED,
+    MEMBER_NOT_FOUND,
+    METHOD_NOT_FOUND,
+    MISSING_TARGET_NAME,
+    MODEL_STALE,
+    NO_BODY,
+    NO_CHANGES,
+    NO_POSITION,
+    NO_SNAPSHOT,
+    NO_SOURCE_DIR,
+    NO_SOURCE_FILE,
+    NO_SOURCE_ROOT,
+    NOT_FOUND,
+    OPENREWRITE_REQUIRED,
+    OVERLOADED_METHOD,
+    OVERRIDE_INVALID,
+    PARSE_ERROR,
+    REFERENCES_EXIST,
+    REWRITE_PREVIEW_FAILED,
+    SECURITY_ERROR,
+    SIGNATURE_NOT_FOUND,
+    SNAPSHOT_NOT_AVAILABLE,
+    SNAPSHOT_REFRESH_FAILED,
+    SYMBOL_NOT_FOUND,
+    TARGET_NOT_FOUND,
+    TYPE_NOT_FOUND,
+    UNRESOLVED_TYPES;
+}

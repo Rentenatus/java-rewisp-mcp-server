@@ -1,109 +1,125 @@
+# API reference — rewisp
 
-**Version:** 2.0.0 — rewisp (mistral_lab)
-**Letzte Aktualisierung:** 2026-10-03
-**Tools:** 35 MCP-Tools
+**Version:** 1.1.2
+**Last updated:** 2026-11-23 (tool inventory 37 checked against `JavaMcpServer.start()`, unchanged; previously checked against the code on 2026-10-25, deviations at the end)
+**Tools:** 37 MCP tools
 
 ---
 
-## Design-Philosophie (mistral_lab)
+## Design philosophy (mistral_lab)
 
-Dieser Branch ist die Labor-Version des Servers, gebaut aus der Sicht
-eines Agenten, der mit dem Server arbeitet:
+This branch is the lab version of the server, built from the perspective
+of an AI agent working with the server:
 
-- **Ein Schreibpfad.** Alle Edits laufen über OpenRewrite-Preview →
-  EditManager (Fingerprint-Lock, Backup, atomare Writes,
-  Zeilenenden-Erhaltung). Der alte Plan-basierte Apply-Weg
+- **One write path.** All edits go through OpenRewrite preview →
+  EditManager (fingerprint lock, backup, atomic writes,
+  line-ending preservation). The old plan-based apply path
   (`rewrite_preview`/`rewrite_apply`/`rewrite_validate`,
-  PlanStore/CommitService mit TTL) ist entfernt — `dryRun=true` auf
-  jedem Edit-Tool ersetzt ihn.
-- **Spoon nur lesen.** Analyse ist strikt read-only; Edits sind
-  ausschließlich OpenRewrite.
-- **Wenige, mächtige Tools.** Jede Einzelfrage, die
-  `inspect_class`/`search_source`/`find_references` bereits
-  beantworten, hat kein eigenes Tool mehr.
-- **Transaktionen überall.** `begin/commit/rollback` mit
-  Delete-at-Commit-Semantik; `dryRun` auf jedem Edit-Tool.
+  PlanStore/CommitService with TTL) is removed — `dryRun=true` on
+  every edit tool replaces it.
+
+- **Spoon only reads.** Analysis is strictly read-only; edits are
+  exclusively OpenRewrite.
+
+- **Few, powerful tools.** Any individual question that
+  `inspect_class`/`search_source`/`find_references` already
+  answer no longer has its own tool.
+
+- **Transactions everywhere.** `begin/commit/rollback` with
+  delete-at-commit semantics; `dryRun` on every edit tool.
 
 ---
 
-## Projekt-Lifecycle (8 Tools)
+## Project lifecycle (9 tools)
 
-| Tool | Beschreibung |
-|------|--------------|
-| `load_java_project` | Projekt laden (Pfad, Git-URL, Archiv); auto-delombok |
-| `list_loaded_projects` | Geladene Projekte auflisten |
-| `unload_java_project` | Projekt entladen |
-| `reload_java_project` | Projekt neu laden (nach externen Änderungen) |
-| `project_metadata` | Metadaten, Build-Typ, Module |
-| `project_refresh_build` | Build-Kontext (Classpath) neu auflösen |
-| `check_project_dirty` | Prüfen, ob das Spoon-Modell seit dem letzten Edit veraltet ist |
-| `reboot_spoon` | Spoon-Zustand hart zurücksetzen |
+| Tool | Description |
+|------|-------------|
+| `load_java_project` | load project (path, Git URL, archive); auto-delombok |
+| `list_loaded_projects` | list loaded projects |
+| `unload_java_project` | unload project |
+| `reload_java_project` | reload project (after external changes) |
+| `project_metadata` | counters, build type, directory (no module list) |
+| `project_refresh_build` | re-resolve the build context (classpath) |
+| `check_project_dirty` | check whether the Spoon model is stale since the last edit |
+| `reboot_spoon` | hard-reset the Spoon state |
+| `get_usage_stats` | usage statistics since server start: per tool calls, errors, run time, flat token estimate (approx. 4 characters per token); number of projects and files; effective timeouts (project lifetime, grace, build resolution) |
 
-## SPOON-Analyse, read-only (10 Tools)
+## SPOON analysis, read-only (10 tools)
 
-| Tool | Beschreibung |
-|------|--------------|
-| `list_classes` | Alle Klassen (Filter nach Package, innere Klassen) |
-| `inspect_class` | Klassen-Detail inkl. Methoden, Felder, Annotationen |
-| `inspect_method` | Methoden-Detail (Signatur, Parameter, Body, Annotationen) |
-| `inspect_field` | Feld-Detail |
-| `get_file_content` | Dateiinhalt (Grundlage für `edit_line`) |
-| `get_element_position` | Exakte Position (Datei, Zeile, Spalte) eines Elements |
-| `search_source` | Textsuche im Source |
-| `find_references` | Alle Referenzen auf ein Symbol (Klasse/Methode/Feld) |
-| `find_implementations` | Implementierungen eines Interfaces |
-| `get_type_hierarchy` | Vererbungshierarchie einer Klasse |
+| Tool | Description |
+|------|-------------|
+| `list_classes` | all top-level classes (package filter exact, without subpackages; inner classes are not listed) |
+| `inspect_class` | class detail incl. methods, fields, annotations |
+| `inspect_method` | method detail (signature, parameters, body, annotations) |
+| `inspect_field` | field detail |
+| `get_file_content` | file content from the snapshot (without line numbers and fingerprint) |
+| `get_element_position` | exact position (file, line, column) of an element |
+| `search_source` | text search in the source |
+| `find_references` | all references to a symbol (class/method/field) |
+| `find_implementations` | implementations of an interface |
+| `get_type_hierarchy` | inheritance hierarchy of a class |
 
-## REWRITE-Edits (13 Tools)
+## REWRITE edits (13 tools)
 
-Alle Edit-Tools akzeptieren `dryRun` (optional, boolean): nur Preview,
-nichts wird geschrieben.
+All edit tools except `add_package` accept `dryRun` (optional, boolean): preview only,
+nothing is written.
 
-| Tool | Beschreibung |
-|------|--------------|
-| `edit_line` | Einzelne Zeile ersetzen (erwartet Fingerprint) |
-| `rename_symbol` | Klasse/Methode/Feld umbenennen; optional alle Caller |
-| `replace_method_body` | Methodenkörper ersetzen |
-| `add_method` | Methode einer Klasse hinzufügen |
-| `add_field` | Feld einer Klasse hinzufügen |
-| `remove_member` | Methode/Feld entfernen |
-| `add_annotation` | Annotation hinzufügen |
-| `remove_annotation` | Annotation entfernen |
-| `edit_annotation` | Annotation-Attribute ändern |
-| `rewrite_signature` | Methodensignatur ändern (nur Deklaration oder inkl. Caller) |
-| `add_package` | Package-Verzeichnis anlegen (optional package-info.java) |
-| `add_class` | Neue Klasse/Interface/Enum anlegen |
-| `move_class` | Klasse in anderes Package verschieben (Imports aktualisiert) |
+| Tool | Description |
+|------|-------------|
+| `edit_line` | replace a single line (expects fingerprint) |
+| `rename_symbol` | rename class/method/field; optionally all callers |
+| `replace_method_body` | replace the method body |
+| `add_method` | add a method to a class |
+| `add_field` | add a field to a class |
+| `remove_member` | remove a method/field |
+| `add_annotation` | add an annotation |
+| `remove_annotation` | remove an annotation |
+| `edit_annotation` | change annotation attributes |
+| `rewrite_signature` | change a method signature (declaration only or incl. callers) |
+| `add_package` | create a package directory (optional package-info.java); **no** `dryRun` |
+| `add_class` | create a new class/interface/enum |
+| `move_class` | move a class to another package (imports updated) |
 
-## Transaktionen (4 Tools)
+## Transactions (5 tools)
 
-| Tool | Beschreibung |
-|------|--------------|
-| `begin_transaction` | Edits puffern statt schreiben |
-| `commit_transaction` | Alles atomar schreiben (inkl. gepufferter Löschungen) |
-| `rollback_transaction` | Alles verwerfen, Platte unberührt |
-| `get_edit_summary` | Edit-Log der laufenden Session |
-
----
-
-## Statistik
-
-| Kategorie | Anzahl |
-|-----------|--------|
-| Projekt-Lifecycle | 8 |
-| SPOON-Analyse (read-only) | 10 |
-| REWRITE-Edits | 13 |
-| Transaktionen | 4 |
-| **Gesamt** | **35** |
-
-Gegenüber 53 Tools in `feature/rewrite`: entfernt wurden der
-Plan-basierte Apply-Weg (4 Tools + PlanStore/CommitService/RewriteTransactionManager/
-ValidationPipeline/TransactionJournal) und 14 redundante
-Einzelzweck-Lese-Tools.
+| Tool | Description |
+|------|-------------|
+| `begin_transaction` | buffer edits instead of writing |
+| `commit_transaction` | write everything atomically (incl. buffered deletions) |
+| `rollback_transaction` | discard buffered changes and read the snapshot of the affected files back from disk (exception: already created directories remain, AP-1.13) |
+| `get_edit_summary` | edit log of the running session |
+| `get_transaction_diff` | diff between the frozen state (contents at the first access of the transaction) and the running transaction state; `statOnly` for a file overview; writes nothing |
 
 ---
 
-## Siehe auch
+## Statistics
 
-- [ARCHITEKTUR.md](ARCHITEKTUR.md) — Schichtenmodell und ADRs
-- [TESTING.md](TESTING.md) — Suite, Parallelität, Timeouts, Skips
+| Category | Count |
+|----------|-------|
+| Project lifecycle | 9 |
+| SPOON analysis (read-only) | 10 |
+| REWRITE edits | 13 |
+| Transactions | 5 |
+| **Total** | **37** |
+
+Compared to 53 tools in `feature/rewrite`: removed were the
+plan-based apply path (4 tools + PlanStore/CommitService/RewriteTransactionManager/
+ValidationPipeline/TransactionJournal) and 14 redundant
+single-purpose read tools.
+
+---
+
+## Known deviations (review 2026-10-25)
+
+- This file contains no parameter schemas; the `inputSchema` in the tool classes is authoritative.
+- `reload_java_project`, `unload_java_project`, `reboot_spoon`, `check_project_dirty` change manager state even though their description says `[SPOON]`.
+- `find_references`, `search_source` and the caller counting of the edit tools only cover method bodies of top-level types; "no references" is no guarantee.
+- The earlier, never registered tools `find_unused_code`, `find_unreachable_code`, `find_deprecated_usages` were deleted (decision D1).
+- Details and work packages: [REVIEW-PLAN.md](REVIEW-PLAN.md).
+
+---
+
+## See also
+
+- [ARCHITEKTUR.md](ARCHITEKTUR.md) — layer model and ADRs
+- [TESTING.md](TESTING.md) — suite, parallelism, timeouts, skips

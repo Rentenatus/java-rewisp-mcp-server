@@ -1,4 +1,0 @@
-// Gradle Multi-Project Settings
-rootProject.name = 'gradle-multi-project'
-
-include 'module-a', 'module-b'

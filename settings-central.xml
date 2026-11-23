@@ -1,0 +1,4 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+  <!-- Bewusst ohne Mirror: Maven nutzt Maven Central. Nur lokal verwenden:
+       mvn -B -s settings-central.xml -gs settings-central.xml test -->
+</settings>
